@@ -1,0 +1,613 @@
+{
+  "name": "Track expenses from Telegram chat with AI and Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Track expenses from Telegram chat with AI and Google Sheets\n\nA personal expense tracker you talk to in plain language. Send \"coffee 25k\" or \"lunch 45000 and taxi 30000\" to your Telegram bot, and it records each item in Google Sheets with a date and category. Ask \"how much did I spend this week?\" or \"change the taxi to 35000\" and it reads or updates the sheet for you.\n\n### How it works\n1. **Telegram Trigger** receives each message.\n2. Only chat IDs in `allowedChatIds` can use the bot; anyone else gets their chat ID back so the owner can add it.\n3. An **AI Agent** (Google Gemini) with chat memory decides what to do and calls three Google Sheets tools: add, read and update.\n4. The reply goes back to Telegram. If the agent fails, the user gets a short apology instead of silence.\n\n### Setup\n1. Create a Google Sheet with a tab named `Expenses` and the headers `ID`, `Date`, `Description`, `Category`, `Amount`.\n2. Fill in **Configuration**: spreadsheet ID, sheet name, currency and timezone.\n3. Add credentials: Telegram (bot token from @BotFather), Google Gemini (API key from Google AI Studio) and Google Sheets (OAuth2).\n4. Activate the workflow and message your bot. It replies with your chat ID: put it in `allowedChatIds`.\n\n### Customization\n- Edit categories, tone or rules in the agent's system message.\n- Swap Gemini for any other chat model node.\n\n**Limitations:** text messages only, no deleting rows, and summaries are calculated by the model, so double-check large totals.",
+        "height": 1000,
+        "width": 580,
+        "color": 1
+      },
+      "id": "8186403a-2008-4f5b-95ec-90915290eafb",
+      "name": "Sticky Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Receive and check\nOnly chat IDs listed in Configuration can use the bot. Others are told their chat ID and nothing is recorded.",
+        "height": 640,
+        "width": 880,
+        "color": 7
+      },
+      "id": "a6f72cf4-cb4d-41b9-a49c-40283af66daa",
+      "name": "Sticky Note - Receive",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Expense agent\nGemini understands the message, remembers the last 20 turns per chat, and adds, reads or updates rows in the sheet.",
+        "height": 820,
+        "width": 900,
+        "color": 7
+      },
+      "id": "18fb5ba8-67b9-4b8e-b537-18cbe84eae82",
+      "name": "Sticky Note - Agent",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Reply\nSends the agent's answer to Telegram, or a short apology if the agent fails.",
+        "height": 640,
+        "width": 400,
+        "color": 7
+      },
+      "id": "5934e067-122f-428c-b68b-9411b8438972",
+      "name": "Sticky Note - Reply",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "28db769e-f8f5-41de-9d9f-d0397be4face",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "5034a351-959b-451d-94fb-44a4009955e0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40d90ca4-1d00-4436-8be6-f92b89cf0250",
+              "name": "spreadsheetId",
+              "type": "string",
+              "value": "YOUR_SPREADSHEET_ID"
+            },
+            {
+              "id": "a7aad45a-c9d1-4f71-8aaa-fe0f02a95802",
+              "name": "sheetName",
+              "type": "string",
+              "value": "Expenses"
+            },
+            {
+              "id": "7a33a359-915a-47cd-b663-aaa68571766c",
+              "name": "currency",
+              "type": "string",
+              "value": "IDR"
+            },
+            {
+              "id": "9a32c1c2-706b-431b-81af-f88e47eb4c07",
+              "name": "timezone",
+              "type": "string",
+              "value": "Asia/Jakarta"
+            },
+            {
+              "id": "9d03a43e-afc5-42e0-b051-eaed445ffb26",
+              "name": "allowedChatIds",
+              "type": "string",
+              "value": "YOUR_TELEGRAM_CHAT_ID"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1dec7423-f432-4b52-8727-bb83f051d54e",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6fad0e0b-0a7b-4343-ad53-89e15bfde78d",
+              "leftValue": "={{ String($json.allowedChatIds).split(',').map(id => id.trim()).includes(String($('Telegram Trigger').item.json.message.chat.id)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cf5bae39-4e78-427c-8e76-a99066cf726e",
+      "name": "Is allowed user?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendChatAction",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "id": "fc8349e1-7a9b-4830-89c4-43760da98f93",
+      "name": "Show typing",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        -100
+      ],
+      "webhookId": "b654ceec-5704-49d1-99de-b2d72891b2a0"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Sorry, this bot is private. Your chat ID is {{ $('Telegram Trigger').item.json.message.chat.id }}. If this is your bot, add this ID to allowedChatIds in the Configuration node.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c2da0833-4e56-4922-8a7c-f153e38ad971",
+      "name": "Reply: private bot",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        140
+      ],
+      "webhookId": "6eff32ef-85df-44f2-882d-e232e40187dd"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Telegram Trigger').item.json.message.text || '[The user sent a message without text, such as a photo, sticker or voice note.]' }}",
+        "options": {
+          "systemMessage": "=You are an expense tracking assistant that works in Telegram and stores everything in Google Sheets. You are friendly, relaxed and precise.\n\nCurrent time: {{ $now.setZone($('Configuration').first().json.timezone).toFormat(\"cccc, dd LLLL yyyy HH:mm\") }} ({{ $('Configuration').first().json.timezone }}). Today's date in YYYY-MM-DD format: {{ $now.setZone($('Configuration').first().json.timezone).toFormat(\"yyyy-MM-dd\") }}.\nCreate record IDs like EXP-{{ $now.setZone($('Configuration').first().json.timezone).toFormat(\"yyyyMMddHHmmss\") }}. When you record more than one expense, add a number at the end (-1, -2, ...) so every ID is unique.\nCurrency: {{ $('Configuration').first().json.currency }}.\n\nTOOLS\n1. Add expense: appends one new row.\n2. Read expenses: reads all rows.\n3. Update expense: updates one row, matched on the ID column.\nSheet columns: ID, Date, Description, Category, Amount.\n\nRULES\n- When the user mentions a purchase (for example \"coffee 25k\"), record it right away. Choose the best category: Food & Drinks, Transport, Shopping, Bills, Health, Entertainment or Other. If no date is given, use today. Turn shorthand like 25k or 25rb into 25000.\n- If one message has several expenses, record them one at a time and wait for each tool call to finish before the next one.\n- If a tool fails, never say it worked. Retry once; if it still fails, say honestly that the expense was not saved.\n- If the amount is unclear, ask a short question. Never guess an amount.\n- For summaries (today, this week, this month, by category), call Read expenses and calculate carefully.\n- To change a record, call Read expenses first to find its ID. If several rows match, ask which one. When updating, fill in every column and keep the old values for anything that does not change.\n- You cannot delete records yet. If asked, explain kindly that you can add, view and update expenses.\n- If the message has no text, ask the user to type the expense instead.\n\nSTYLE\n- Reply in the same language the user writes in. Keep it short, warm and clear.\n- After adding or updating, confirm the description, category, amount with currency, and date.\n- Use at most one or two emoji, at the end of a sentence.\n- Plain text only: no asterisks, hashes, Markdown, square brackets or angle brackets.\n- If something goes wrong, apologize briefly and explain it simply, without technical terms."
+        }
+      },
+      "id": "2faecdf6-477e-4bc8-a9a3-f795e6a170d8",
+      "name": "Expense Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1080,
+        -100
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "4fece250-3917-4941-b856-0ab900ba3cfc",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 20
+      },
+      "id": "d0d2208d-0b96-4fa7-8114-d1db34a35a41",
+      "name": "Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1040,
+        200
+      ]
+    },
+    {
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.sheetName }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $fromAI('ID', 'Unique record ID, for example EXP-20261123143000', 'string') }}",
+            "Date": "={{ $fromAI('Date', 'Expense date in YYYY-MM-DD format', 'string') }}",
+            "Description": "={{ $fromAI('Description', 'Short description of the expense', 'string') }}",
+            "Category": "={{ $fromAI('Category', 'Expense category', 'string') }}",
+            "Amount": "={{ $fromAI('Amount', 'Amount as a plain number, no currency symbol or separators', 'number') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4b0d350b-fe71-418b-b10e-f00cec6215d9",
+      "name": "Add expense",
+      "position": [
+        1220,
+        200
+      ]
+    },
+    {
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.sheetName }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "2492644e-a6b8-4792-bb9b-bf903bb57800",
+      "name": "Read expenses",
+      "position": [
+        1380,
+        200
+      ]
+    },
+    {
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Configuration').first().json.sheetName }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $fromAI('ID', 'ID of the record to change, taken from Read expenses', 'string') }}",
+            "Date": "={{ $fromAI('Date', 'Date in YYYY-MM-DD format; keep the old value if unchanged', 'string') }}",
+            "Description": "={{ $fromAI('Description', 'Description; keep the old value if unchanged', 'string') }}",
+            "Category": "={{ $fromAI('Category', 'Category; keep the old value if unchanged', 'string') }}",
+            "Amount": "={{ $fromAI('Amount', 'Amount as a plain number; keep the old value if unchanged', 'number') }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "1a04cf2d-b949-4cbd-bf80-54aea9403257",
+      "name": "Update expense",
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "1531594f-2c68-4d15-8491-138e44310872",
+      "name": "Send reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1820,
+        -100
+      ],
+      "webhookId": "62f54d4f-7cd3-43a6-baf9-0dbb53e680e5"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Sorry, something went wrong on my side and nothing was changed. Please try again in a moment.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "483bcc9b-3e86-4bb5-9a8a-02019d32fb7e",
+      "name": "Send error message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1820,
+        140
+      ],
+      "webhookId": "34dd0051-25cc-40e9-b576-ff2f28e9ec9d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Is allowed user?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is allowed user?": {
+      "main": [
+        [
+          {
+            "node": "Show typing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply: private bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Show typing": {
+      "main": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expense Agent": {
+      "main": [
+        [
+          {
+            "node": "Send reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send error message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add expense": {
+      "ai_tool": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read expenses": {
+      "ai_tool": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update expense": {
+      "ai_tool": [
+        [
+          {
+            "node": "Expense Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
